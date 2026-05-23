@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remedi 💊</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container d-flex justify-content-between align-items-center">
+            <span class="navbar-brand fw-bold fs-3">💊 Remedi</span>
+            <div class="d-flex align-items-center gap-3">
+                <span class="text-white fw-bold fs-5">🔥 {{ streak }} day streak</span>
+                <a href="/add" class="btn btn-light fw-bold">+ Add Medicine</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+
+        <div id="notif-banner" class="alert alert-info d-flex justify-content-between align-items-center d-none">
+            <span>🔔 Enable notifications to get medicine reminders!</span>
+            <button onclick="requestNotificationPermission()" class="btn btn-primary btn-sm">Enable</button>
+        </div>
+
+        {% set upcoming = medicines | selectattr("taken", "equalto", 0) | list %}
+        {% set taken = medicines | selectattr("taken", "equalto", 1) | list %}
+
+        <!-- UPCOMING -->
+        <h4 class="mb-3 text-secondary">⏰ Upcoming</h4>
+
+        {% if medicines | list | length == 0 %}
+            <div class="text-center mt-5">
+                <p class="fs-2">👋</p>
+                <p class="fs-5 fw-semibold">Welcome to Remedi!</p>
+                <p class="text-muted">You haven't added any medicines yet.</p>
+                <a href="/add" class="btn btn-primary mt-2">+ Add your first medicine</a>
+            </div>
+
+        {% elif upcoming | length == 0 %}
+            <div class="text-center py-4">
+                <p class="fs-2">🎉</p>
+                <p class="text-muted fs-5">All medicines taken for today! Great job!</p>
+            </div>
+
+        {% else %}
+            {% for med in upcoming %}
+            <div class="card mb-3 shadow-sm border-0">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-1">{{ med["name"] }}</h5>
+                        <p class="text-muted mb-1">💊 {{ med["quantity"] }} {{ med["unit"] }}
+                            {% if med["dosage"] %} — {{ med["dosage"] }}{% endif %}
+                        </p>
+                        <p class="text-muted mb-0">⏰ {{ med["reminder_time"] }}</p>
+                    </div>
+                    <a href="/taken/{{ med['id'] }}" class="btn btn-success btn-sm px-3">
+                        Mark Taken ✅
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- TAKEN -->
+        {% if taken | length > 0 %}
+            <hr class="my-4">
+            <h4 class="mb-3 text-secondary">✅ Taken</h4>
+            {% for med in taken %}
+            <div class="card mb-3 border-0 bg-white opacity-75">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-1 text-decoration-line-through text-muted">
+                            {{ med["name"] }}
+                        </h5>
+                        <p class="text-muted mb-1">💊 {{ med["quantity"] }} {{ med["unit"] }}
+                            {% if med["dosage"] %} — {{ med["dosage"] }}{% endif %}
+                        </p>
+                        <p class="text-muted mb-0">⏰ {{ med["reminder_time"] }}</p>
+                    </div>
+                    <span class="badge bg-success fs-6 px-3 py-2">Done ✅</span>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+
+    </div>
+
+    <script>
+        const medicines = [
+            {% for med in medicines %}
+            {
+                name: "{{ med['name'] }}",
+                quantity: "{{ med['quantity'] }}",
+                unit: "{{ med['unit'] }}",
+                reminder_time: "{{ med['reminder_time'] }}",
+                taken: {{ med['taken'] }}
+            },
+            {% endfor %}
+        ];
+
+        if (Notification.permission === "default") {
+            document.getElementById("notif-banner").classList.remove("d-none");
+        }
+
+        function requestNotificationPermission() {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    document.getElementById("notif-banner").classList.add("d-none");
+                    alert("✅ Notifications enabled!");
+                }
+            });
+        }
+
+        function checkReminders() {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+
+            medicines.forEach(med => {
+                if (med.taken === 1) return;
+                const timePart = med.reminder_time.split("|")[0].trim();
+                const [time, ampm] = timePart.split(" ");
+                let [hour, minute] = time.split(":").map(Number);
+
+                if (ampm === "PM" && hour !== 12) hour += 12;
+                if (ampm === "AM" && hour === 12) hour = 0;
+
+                if (hour === currentHour && minute === currentMinute) {
+                    if (Notification.permission === "granted") {
+                        new Notification("💊 Remedi Reminder!", {
+                            body: `Time to take ${med.quantity} ${med.unit} of ${med.name}`,
+                            icon: "https://cdn-icons-png.flaticon.com/512/822/822111.png"
+                        });
+                    }
+                }
+            });
+        }
+
+        setInterval(checkReminders, 60000);
+        checkReminders();
+    </script>
+
+</body>
+</html>
