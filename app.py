@@ -104,6 +104,8 @@ def mark_taken(medicine_id):
     conn.close()
     return redirect(url_for("home"))
 
+# This runs init_db always, even on Render via gunicorn
+init_db()
+
 if __name__ == "__main__":
-    init_db()
     app.run(debug=True)
