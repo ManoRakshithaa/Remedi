@@ -104,6 +104,14 @@ def mark_taken(medicine_id):
     conn.close()
     return redirect(url_for("home"))
 
+@app.route("/delete/<int:medicine_id>")
+def delete_medicine(medicine_id):
+    conn = get_db()
+    conn.execute("DELETE FROM medicines WHERE id = ?", (medicine_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for("home"))
+
 # This runs init_db always, even on Render via gunicorn
 init_db()
 
