@@ -112,6 +112,15 @@ def delete_medicine(medicine_id):
     conn.close()
     return redirect(url_for("home"))
 
+@app.route("/reset")
+def reset():
+    conn = get_db()
+    conn.execute("DELETE FROM medicines")
+    conn.execute("DELETE FROM streaks")
+    conn.commit()
+    conn.close()
+    return redirect(url_for("home"))
+
 # This runs init_db always, even on Render via gunicorn
 init_db()
 
